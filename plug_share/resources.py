@@ -6,7 +6,6 @@ from bson import ObjectId
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 import datetime
 
-
 # new user arguments parser
 new_user_parser = reqparse.RequestParser()
 new_user_parser.add_argument("user_name", type=str, required=True, location="form")
@@ -141,8 +140,6 @@ class User(Resource):
                 "status": "Error",
                 "Error": e
             }
-        
-
 
 # parser for adding/voting needs to list
 needs_selection_parser = reqparse.RequestParser()
@@ -151,8 +148,6 @@ needs_selection_parser.add_argument("need_2", type = str, location = "form")
 needs_selection_parser.add_argument("need_3", type = str, location = "form")
 needs_selection_parser.add_argument("need_4", type = str, location = "form")
 needs_selection_parser.add_argument("user_id", type = str, location = "args")
-
-
 
 class CommunityNeeds(Resource):
     # getting top needs 
@@ -230,7 +225,6 @@ class CommunityNeeds(Resource):
                 "Error": e
             }
 
-
 # parser for submitting a solution
 solution_submit_parser = reqparse.RequestParser()
 solution_submit_parser.add_argument("solution_01", location="form", type=str)
@@ -255,7 +249,6 @@ edit_solution_parser.add_argument("quality_01", location="form", type=str)
 edit_solution_parser.add_argument("phone_number_01", location="form", type=str)
 edit_solution_parser.add_argument("location_01", location="form", type=str)
 edit_solution_parser.add_argument("details_01", location="form", type=str)
-
 
 class Solutions(Resource):
     # @jwt_required()
@@ -344,7 +337,6 @@ rating_and_flag_parser.add_argument("star_4", location="form", type=str)
 rating_and_flag_parser.add_argument("star_5", location="form", type=str)
 rating_and_flag_parser.add_argument("user_id", location="args", type=str)
 rating_and_flag_parser.add_argument("solution_id", location="args", type=str)
-
 
 class SolutionReviews(Resource):
     # @jwt_required()

@@ -48,7 +48,6 @@ class GeneralGeneral_2(Resource):
                 "Error": e
             }
 
-
 # get need info parser
 need_info_parser = reqparse.RequestParser()
 need_info_parser.add_argument("user_id", location="args", type=str)
@@ -78,7 +77,6 @@ class GeneralGeneral_3(Resource):
                 "status": "Error",
                 "Error": e
             }
-
 
 #getting community plugs 
 class Plugs(Resource):
