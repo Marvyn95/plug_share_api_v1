@@ -15,7 +15,6 @@ conn_string = "mongodb://Marvin:Marvollos95.@localhost:27017/"
 cluster = pymongo.MongoClient(conn_string)
 data_base = cluster["plug_share_01"]
 
-
 from plug_share.resources import User, CommunityNeeds, Solutions, SolutionReviews
 from plug_share.resources_2 import GeneralGeneral_1, GeneralGeneral_2,GeneralGeneral_3, Plugs
 # adding all resources      
