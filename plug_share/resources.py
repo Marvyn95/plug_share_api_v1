@@ -5,6 +5,7 @@ from plug_share import data_base, jwt
 from bson import ObjectId
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 import datetime
+import secrets
 
 # new user arguments parser
 new_user_parser = reqparse.RequestParser()
@@ -47,8 +48,9 @@ class User(Resource):
                     "needs": [],
                     "solutions_submitted": [],
                     "solutions_rated": [],
-                    "role": "user",
-                    "badges": []
+                    "role": "Member",
+                    "stars": 0,
+                    "points": 0,
                 }
                 data_base.users.insert_one(new_user)
                 return {
@@ -124,6 +126,7 @@ class User(Resource):
             args = edit_user_details_parser.parse_args()
             user_01 = data_base.users.find_one({"email": args["email"]})
 
+            # checking if new email already exists in database for another user 
             if user_01 != None and user_01["_id"] != ObjectId(args["user_id"]):
                 return {
                     "status": False,
@@ -141,28 +144,32 @@ class User(Resource):
                 "Error": e
             }
 
-# parser for adding/voting needs to list
+# parser for adding/voting need to list
 needs_selection_parser = reqparse.RequestParser()
-needs_selection_parser.add_argument("need_1", type = str, location = "form")
-needs_selection_parser.add_argument("need_2", type = str, location = "form")
-needs_selection_parser.add_argument("need_3", type = str, location = "form")
-needs_selection_parser.add_argument("need_4", type = str, location = "form")
+needs_selection_parser.add_argument("sub_category_id", type = str, location = "form")
+needs_selection_parser.add_argument("location", type = str, location = "form")
+needs_selection_parser.add_argument("purpose", type = str, location = "form")
 needs_selection_parser.add_argument("user_id", type = str, location = "args")
+
+# parser for deleting need from user needs list
+needs_deletion_parser = reqparse.RequestParser()
+needs_deletion_parser.add_argument("user_id", type=str, location="args")
+needs_deletion_parser.add_argument("sub_category_id", type=str, location="args")
+needs_deletion_parser.add_argument("need_id", type=str, location="args")
 
 class CommunityNeeds(Resource):
     # getting top needs 
     def get(self):
         try:
-            top_needs = data_base.needs.find({"votes": {"$gt": 0}}).sort("votes", -1).limit(30)
-            top_needs = list(top_needs)
+            #getting all need categories
+            user_selected_needs = [item for item in list(data_base.needs.find()) if item["votes"] != []]
             count = 0
-            for item in top_needs:
+            for item in user_selected_needs:
                 item["_id"] = str(item["_id"])
                 count = count +1
-            
             return{
                 "count": count,
-                "top_needs": top_needs,
+                "top_needs": user_selected_needs,
             }
         except Exception as e:
             return {
@@ -173,57 +180,53 @@ class CommunityNeeds(Resource):
     # adding needs to profile
     # @jwt_required()
     def post(self):
-        try:
-            args = needs_selection_parser.parse_args()
-            user_01 = data_base.users.find_one({"_id": ObjectId(args["user_id"])})
+        args = needs_selection_parser.parse_args()
+        user_01 = data_base.users.find_one({"_id": ObjectId(args["user_id"])})
 
-            if len(user_01["needs"]) == 0:
-                #updating votes for the needs selected
-                data_base.needs.update_one({"_id": ObjectId(args["need_1"])}, {"$inc": {"votes": 1}})
-                data_base.needs.update_one({"_id": ObjectId(args["need_2"])}, {"$inc": {"votes": 1}})
-                data_base.needs.update_one({"_id": ObjectId(args["need_3"])}, {"$inc": {"votes": 1}})
-                data_base.needs.update_one({"_id": ObjectId(args["need_4"])}, {"$inc": {"votes": 1}})
-                
-                #creating array of the needs selected
-                needs_list= [
-                    data_base.needs.find_one({"_id": ObjectId(args["need_1"])}),
-                    data_base.needs.find_one({"_id": ObjectId(args["need_2"])}),
-                    data_base.needs.find_one({"_id": ObjectId(args["need_3"])}),
-                    data_base.needs.find_one({"_id": ObjectId(args["need_4"])})
-                ]
+        if len(user_01["needs"]) < 3:
+            #updating votes in need categories
+            data_base.needs.update_one({"_id": ObjectId(args["sub_category_id"])}, {"$push": {"votes": args["user_id"]}})
 
-                #updating needs for user
-                data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$set": {"needs": needs_list}})
-
-            else:
-                # updating votes on needs selected and those removed from users needs
-                for i in range(4):
-                    if len(user_01["needs"]) > i and user_01["needs"][i] is not None:
-                        data_base.needs.update_one({"_id": user_01["needs"][i]["_id"]}, {"$inc": {"votes": -1}})
-                        data_base.needs.update_one({"_id": ObjectId(args[f"need_{i+1}"])}, {"$inc": {"votes": 1}})
-
-                new_needs_list = [
-                    data_base.needs.find_one({"_id": ObjectId(args["need_1"])}),
-                    data_base.needs.find_one({"_id": ObjectId(args["need_2"])}),
-                    data_base.needs.find_one({"_id": ObjectId(args["need_3"])}),
-                    data_base.needs.find_one({"_id": ObjectId(args["need_4"])})
-                ]
-                
-                #updating needs for user
-                data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$set": {"needs": new_needs_list}})
-
-            user_updated = data_base.users.find_one({"_id": ObjectId(args["user_id"])})
-            for item in user_updated["needs"]:
-                item["_id"] = str(item["_id"])
-            
+            #updating user needs 
+            data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$push": {"needs": {
+                "need_id": secrets.token_hex(16),
+                "sub_category_id": args["sub_category_id"],
+                "location": args["location"],
+                "purpose": args["purpose"]
+            }}})
             return {
-                "user_needs": user_updated["needs"]
+                "status": True,
+                "message": "needs updated successfully :)"
+            }
+        else:
+            return {
+                "status": False,
+                "message": "needs already full :( !!)"
+            }
+
+    def delete(self):
+        try:
+            args = needs_deletion_parser.parse_args()
+            # deleting need from user's need list
+            data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$pull": {"needs": {"need_id": args["need_id"]}}})
+            #reducing votes in the general needs list
+            votes = data_base.needs.find_one({"_id": ObjectId(args["sub_category_id"])})["votes"]
+            if votes:
+                try:
+                    votes.remove(args["user_id"])
+                except:
+                    pass
+            data_base.needs.update_one({"_id": ObjectId(args["sub_category_id"])}, {"$set": {"votes": votes}})
+            return {
+                "status": True,
+                "message": "Need deleted Successfully :)"
             }
         except Exception as e:
             return {
                 "status": "Error",
                 "Error": e
             }
+    
 
 # parser for submitting a solution
 solution_submit_parser = reqparse.RequestParser()
