@@ -157,19 +157,36 @@ needs_deletion_parser.add_argument("user_id", type=str, location="args")
 needs_deletion_parser.add_argument("sub_category_id", type=str, location="args")
 needs_deletion_parser.add_argument("need_id", type=str, location="args")
 
+
 class CommunityNeeds(Resource):
     # getting top needs 
     def get(self):
         try:
             #getting all need categories
             user_selected_needs = [item for item in list(data_base.needs.find()) if item["votes"] != []]
+            #sorting based on largest selected category and getting top 30 categories
+            sorted_user_selected_needs = sorted(user_selected_needs, key = lambda x: len(x["votes"]))[:30]
+            top_needs = []
             count = 0
-            for item in user_selected_needs:
-                item["_id"] = str(item["_id"])
-                count = count +1
+            for item in sorted_user_selected_needs:
+                for x in item["votes"]:
+                    user = data_base.users.find_one({"_id": ObjectId(x["user_id"])})
+                    need = [y for y in user["needs"] if y["need_id"] == x["need_id"]]
+                    need[0]["user_info"] = {
+                        "user_name": user["user_name"],
+                        "user_email": user["email"],
+                        "user_stars": user["stars"],
+                        "user_points": user["points"]
+                    }
+                    need[0]["need_category info"] = {
+                        "need_category": item["categories"],
+                        "need_sub_category": item["sub_categories"]
+                    }
+                    top_needs.append(need[0])
+                    count += 1
             return{
                 "count": count,
-                "top_needs": user_selected_needs,
+                "top_needs": top_needs
             }
         except Exception as e:
             return {
@@ -185,11 +202,15 @@ class CommunityNeeds(Resource):
 
         if len(user_01["needs"]) < 3:
             #updating votes in need categories
-            data_base.needs.update_one({"_id": ObjectId(args["sub_category_id"])}, {"$push": {"votes": args["user_id"]}})
+            need_id = secrets.token_hex(16)
+            data_base.needs.update_one({"_id": ObjectId(args["sub_category_id"])}, {"$push": {"votes": {
+                "user_id": args["user_id"],
+                "need_id": need_id
+            }}})
 
             #updating user needs 
             data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$push": {"needs": {
-                "need_id": secrets.token_hex(16),
+                "need_id": need_id,
                 "sub_category_id": args["sub_category_id"],
                 "location": args["location"],
                 "purpose": args["purpose"]
@@ -213,7 +234,7 @@ class CommunityNeeds(Resource):
             votes = data_base.needs.find_one({"_id": ObjectId(args["sub_category_id"])})["votes"]
             if votes:
                 try:
-                    votes.remove(args["user_id"])
+                    votes = [vote for vote in votes if vote["need_id"] != args["need_id"]]
                 except:
                     pass
             data_base.needs.update_one({"_id": ObjectId(args["sub_category_id"])}, {"$set": {"votes": votes}})
