@@ -172,16 +172,14 @@ class CommunityNeeds(Resource):
                 for x in item["votes"]:
                     user = data_base.users.find_one({"_id": ObjectId(x["user_id"])})
                     need = [y for y in user["needs"] if y["need_id"] == x["need_id"]]
-                    need[0]["user_info"] = {
-                        "user_name": user["user_name"],
-                        "user_email": user["email"],
-                        "user_stars": user["stars"],
-                        "user_points": user["points"]
-                    }
-                    need[0]["need_category info"] = {
-                        "need_category": item["categories"],
-                        "need_sub_category": item["sub_categories"]
-                    }
+                    
+                    need[0]["need_category"] = item["categories"]
+                    need[0]["need_sub_category"] = item["sub_categories"]
+                    need[0]["poster's_name"] = user["user_name"]
+                    need[0]["poster's_email"] = user["email"]
+                    need[0]["poster's_stars"] = user["stars"]
+                    need[0]["poster's_points"] = user["points"]
+
                     top_needs.append(need[0])
                     count += 1
             return{
@@ -251,13 +249,15 @@ class CommunityNeeds(Resource):
 
 # parser for submitting a solution
 solution_submit_parser = reqparse.RequestParser()
-solution_submit_parser.add_argument("solution_01", location="form", type=str)
-solution_submit_parser.add_argument("quality_01", location="form", type=str)
-solution_submit_parser.add_argument("phone_number_01", location="form", type=str)
-solution_submit_parser.add_argument("location_01", location="form", type=str)
-solution_submit_parser.add_argument("details_01", location="form", type=str)
+solution_submit_parser = reqparse.RequestParser()
 solution_submit_parser.add_argument("user_id", location="args", type=str)
 solution_submit_parser.add_argument("need_id", location="args", type=str)
+solution_submit_parser.add_argument("sub_category_id", location="args", type=str)
+solution_submit_parser.add_argument("solution", location="form", type=str)
+solution_submit_parser.add_argument("phone_number", location="form", type=str)
+solution_submit_parser.add_argument("email", location="form", type=str)
+solution_submit_parser.add_argument("location", location="form", type=str)
+solution_submit_parser.add_argument("details", location="form", type=str)
 
 #parser for getting solution info
 solution_info_parser = reqparse.RequestParser()
@@ -268,13 +268,20 @@ solution_info_parser.add_argument("solution_id", location="args", type=str)
 edit_solution_parser = reqparse.RequestParser()
 edit_solution_parser.add_argument("user_id", location="args", type=str)
 edit_solution_parser.add_argument("solution_id", location="args", type=str)
-edit_solution_parser.add_argument("solution_01", location="form", type=str)
-edit_solution_parser.add_argument("quality_01", location="form", type=str)
-edit_solution_parser.add_argument("phone_number_01", location="form", type=str)
-edit_solution_parser.add_argument("location_01", location="form", type=str)
-edit_solution_parser.add_argument("details_01", location="form", type=str)
+edit_solution_parser.add_argument("solution", location="form", type=str)
+edit_solution_parser.add_argument("phone_number", location="form", type=str)
+edit_solution_parser.add_argument("email", location="form", type=str)
+edit_solution_parser.add_argument("location", location="form", type=str)
+edit_solution_parser.add_argument("details", location="form", type=str)
+
+
+#delete solution parser
+delete_solution_parser = reqparse.RequestParser()
+delete_solution_parser.add_argument("user_id", location="args", type=str)
+delete_solution_parser.add_argument("solution_id", location="args", type=str)
 
 class Solutions(Resource):
+    # adding solution to specific need
     # @jwt_required()
     def post(self):
         try:
@@ -286,21 +293,29 @@ class Solutions(Resource):
                 }
             else:
                 solution_info = {
-                    "business_name": args["solution_01"],
-                    "quality": args["quality_01"],
-                    "phone_number": args["phone_number_01"],
-                    "location": args["location_01"],
-                    "details": args["details_01"],
                     "user_id": args["user_id"],
                     "need_id": args["need_id"],
+                    "need_sub_category_id": args["sub_category_id"],
+                    "business_name": args["solution"],
+                    "phone_number": args["phone_number"],
+                    "email": args["email"],
+                    "location": args["location"],
+                    "details": args["details"],
                     "date_added": datetime.date.today().strftime("%A, %d/%b/%Y"),
                     "time_added": datetime.datetime.now().strftime("%H:%M hrs"),
                     "flags": [],
-                    "reviews": []
+                    "reviews": [],
+                    "alternative": []
                 }
                 
+                #populating database collections
                 data_base.solutions.insert_one(solution_info)
-                data_base.needs.update_one({"_id": ObjectId(args["need_id"])}, {"$push": {"solutions_submitted": str(solution_info["_id"])}})
+                data_base.needs.update_one({"_id": ObjectId(args["sub_category_id"])}, {"$push": {"solutions_submitted": {
+                    "solution_poster_id": args["user_id"],
+                    "need_id": args["need_id"],
+                    "solution_id": str(solution_info["_id"])
+                }}})
+                data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$push": {"solutions_submitted": str(solution_info["_id"])}})
                 solution_info["_id"] = str(solution_info["_id"])
 
                 return {
@@ -321,10 +336,33 @@ class Solutions(Resource):
             args = solution_info_parser.parse_args()
             solution_info = data_base.solutions.find_one({"_id": ObjectId(args["solution_id"])})
             solution_info["_id"] = str(solution_info["_id"])
+            
+            #getting poster's info and adding it to return odject
+            poster_info = data_base.users.find_one({"_id": ObjectId(args["user_id"])})
+            solution_info["poster_info"] = {
+                "poster_name": poster_info["user_name"],
+                "poster_email": poster_info["email"],
+                "poster_stars": poster_info["stars"],
+                "poster_points": poster_info["points"]
+            }
+
+            #getting need info and adding it to return object
+            for item in poster_info["needs"]:
+                if item["need_id"] == solution_info["need_id"]:
+                    need = item
+            category_info = data_base.needs.find_one({"_id": ObjectId(solution_info["need_sub_category_id"])})
+            
+            solution_info["need_info"] = { 
+                "category": category_info["categories"],
+                "sub_category": category_info["sub_categories"],
+                "location_needed": need["location"],
+                "purpose": need["purpose"]
+            }
             return {
                 "status": True,
                 "solution": solution_info
             }
+        
         except Exception as e:
             return {
                 "status": "Error",
@@ -336,11 +374,11 @@ class Solutions(Resource):
     def patch(self):
         try:
             args = edit_solution_parser.parse_args()
-            data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$set": {"business_name": args["solution_01"],
-                                                                                            "quality": args["quality_01"],
-                                                                                            "phone_number": args["phone_number_01"],
-                                                                                            "location": args["location_01"],
-                                                                                            "details": args["details_01"]}})
+            data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$set": {"business_name": args["solution"],
+                                                                                            "phone_number": args["phone_number"],
+                                                                                            "email": args["email"],
+                                                                                            "location": args["location"],
+                                                                                            "details": args["details"]}})
             return {
                 "status": True,
                 "message": "Solution Updated Successfully :)"
@@ -350,6 +388,28 @@ class Solutions(Resource):
                 "status": "Error",
                 "Error": e
             }
+        
+    # delete solution
+    # @jwt_required()
+    def delete(self):
+        args = delete_solution_parser.parse_args()
+        
+        #getting solution info before deletion
+        solution_info = data_base.solutions.find_one({"_id": ObjectId(args["solution_id"])})
+        #deleting solution from solutions collection
+        data_base.solutions.delete_one({"_id": ObjectId(args["solution_id"])})
+        #deleting solution references from needs collection as well
+        data_base.needs.update_one({"_id": ObjectId(solution_info["need_sub_category_id"])}, {"$pull": {"solutions_submitted": {
+            "solution_id": args["solution_id"]
+        }}})
+        #deleting solution references from users collection as well
+        data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$pull": {"solutions_submitted": args["solution_id"]}})
+
+        return {
+            "status": True,
+            "message": "Solution Has Been Deleted Successfully ! :)"
+        }
+
 
 # rating and flag parser 
 rating_and_flag_parser = reqparse.RequestParser()
