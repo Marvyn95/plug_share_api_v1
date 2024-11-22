@@ -305,6 +305,7 @@ class Solutions(Resource):
                     "time_added": datetime.datetime.now().strftime("%H:%M hrs"),
                     "flags": [],
                     "reviews": [],
+                    "endorsements": [],
                     "alternative": []
                 }
                 
@@ -392,23 +393,31 @@ class Solutions(Resource):
     # delete solution
     # @jwt_required()
     def delete(self):
-        args = delete_solution_parser.parse_args()
-        
-        #getting solution info before deletion
-        solution_info = data_base.solutions.find_one({"_id": ObjectId(args["solution_id"])})
-        #deleting solution from solutions collection
-        data_base.solutions.delete_one({"_id": ObjectId(args["solution_id"])})
-        #deleting solution references from needs collection as well
-        data_base.needs.update_one({"_id": ObjectId(solution_info["need_sub_category_id"])}, {"$pull": {"solutions_submitted": {
-            "solution_id": args["solution_id"]
-        }}})
-        #deleting solution references from users collection as well
-        data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$pull": {"solutions_submitted": args["solution_id"]}})
+        try:
+            args = delete_solution_parser.parse_args()
 
-        return {
-            "status": True,
-            "message": "Solution Has Been Deleted Successfully ! :)"
-        }
+            #getting solution info before deletion
+            solution_info = data_base.solutions.find_one({"_id": ObjectId(args["solution_id"])})
+
+            #deleting solution from solutions collection
+            data_base.solutions.delete_one({"_id": ObjectId(args["solution_id"])})
+
+            #deleting solution references from needs collection as well
+            data_base.needs.update_one({"_id": ObjectId(solution_info["need_sub_category_id"])}, {"$pull": {"solutions_submitted": {
+                "solution_id": args["solution_id"]
+            }}})
+
+            #deleting solution references from users collection as well
+            data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$pull": {"solutions_submitted": args["solution_id"]}})
+            return {
+                "status": True,
+                "message": "Solution Has Been Deleted Successfully ! :)"
+            }
+        except Exception as e:
+            return {
+                "status": False,
+                "message": "solution Does Not Exist Or Has Been Deleted!" 
+            }
 
 
 # rating and flag parser 
