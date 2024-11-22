@@ -51,6 +51,9 @@ class User(Resource):
                     "role": "Member",
                     "stars": 0,
                     "points": 0,
+                    "solutions_flagged": [],
+                    "solutions_reviewed": [],
+                    "solutions_endorsed": [] 
                 }
                 data_base.users.insert_one(new_user)
                 return {
@@ -305,6 +308,7 @@ class Solutions(Resource):
                     "time_added": datetime.datetime.now().strftime("%H:%M hrs"),
                     "flags": [],
                     "reviews": [],
+                    "points": 0,
                     "endorsements": [],
                     "alternative": []
                 }
@@ -421,52 +425,102 @@ class Solutions(Resource):
 
 
 # rating and flag parser 
-rating_and_flag_parser = reqparse.RequestParser()
-rating_and_flag_parser.add_argument("flag", location="form", type=str)
-rating_and_flag_parser.add_argument("star_1", location="form", type=str)
-rating_and_flag_parser.add_argument("star_2", location="form", type=str)
-rating_and_flag_parser.add_argument("star_3", location="form", type=str)
-rating_and_flag_parser.add_argument("star_4", location="form", type=str)
-rating_and_flag_parser.add_argument("star_5", location="form", type=str)
-rating_and_flag_parser.add_argument("user_id", location="args", type=str)
-rating_and_flag_parser.add_argument("solution_id", location="args", type=str)
+review_parser = reqparse.RequestParser()
+review_parser.add_argument("user_id", location="args", type=str)
+review_parser.add_argument("solution_id", location="args", type=str)
+review_parser.add_argument("flag", location="form", type=str)
+review_parser.add_argument("star_1", location="form", type=str)
+review_parser.add_argument("star_2", location="form", type=str)
+review_parser.add_argument("star_3", location="form", type=str)
+review_parser.add_argument("star_4", location="form", type=str)
+review_parser.add_argument("star_5", location="form", type=str)
+review_parser.add_argument("endorsement", location="form", type=str)
+
 
 class SolutionReviews(Resource):
     # @jwt_required()
     def post(self):
         try:
-            args = rating_and_flag_parser.parse_args()
-            rating_array = [
-                args["star_1"],
-                args["star_2"],
-                args["star_3"],
-                args["star_4"],
-                args["star_5"]
-            ]
+            args = review_parser.parse_args()
+            user_info = data_base.users.find_one({"_id": ObjectId(args["user_id"])})
+            solution_info = data_base.solutions.find_one({"_id": ObjectId(args["solution_id"])})
+            review_array = [args["star_1"], args["star_2"], args["star_3"], args["star_4"], args["star_5"]]
             solution_rating = 0
-            for item in rating_array:
+            for item in review_array:
                 if item == "True":
                     solution_rating += 1
-            
-            # for the reviews
+
+            # for the reviews (reviewing and updating of reviews)
+            #if its the first time to review item
             if data_base.solutions.find_one({"_id": ObjectId(args["solution_id"]), "reviews": {"$elemMatch": {"user_id": args["user_id"]}}}) == None:
+                #updating review for solution info in database
                 data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$push": {"reviews": {
                     "user_id": args["user_id"],
                     "solution_rating": solution_rating
                 }}})
+                
+                #updating review for user info in database
+                data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$push": {"solutions_reviewed": {
+                    "solution_id": args["solution_id"],
+                    "review": [args["star_1"], args["star_2"], args["star_3"], args["star_4"], args["star_5"]]
+                }}})
+
+                #updating solution owner's stars
+                data_base.user.update_one({"_id": ObjectId(solution_info["user_id"])}, {"$inc": {"stars": solution_rating}})
+
+            #if user already reviewed item
             elif data_base.solutions.find_one({"_id": ObjectId(args["solution_id"]), "reviews": {"$elemMatch": {"user_id": args["user_id"]}}}) != None:
+                #removing old review from solution in database
                 data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$pull": {"reviews": {"user_id": args["user_id"]}}})
+                #adding new review to solution in database
                 data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$push": {"reviews": {
                     "user_id": args["user_id"],
                     "solution_rating": solution_rating
-                }}})           
+                }}})
 
-            # for the flags
+                #removing old review from user info in database
+                data_base.users.update_one({"_id" : ObjectId(args["user_id"])}, {"$pull": {"solutions_reviewed": {"solution_id": args["solution_id"]}}})
+                #adding new review to user info in database
+                data_base.users.update_one({"_id" : ObjectId(args["user_id"])}, {"$push": {"solutions_reviewed": {
+                    "solution_id": args["solution_id"],
+                    "review": [args["star_1"], args["star_2"], args["star_3"], args["star_4"], args["star_5"]]
+                }}})
+
+                #updating solution owners stars in database
+                for rev in solution_info["solutions_reviewed"]:
+                # getting former review from user (reviewer's) info and computing rating difference
+                    if rev["user_id"] ==  args["user_id"]:
+                        rating_diff = solution_rating - len(rev["review"])
+                data_base.user.update_one({"_id": ObjectId(solution_info["user_id"])}, {"$inc": {"stars": rating_diff}})
+
+            # flagging and updating flag status
+            #flagging
             if args["flag"] == "True" and data_base.solutions.find_one({"_id": ObjectId(args["solution_id"]), "flags": {"$in": [args["user_id"]]}}) == None:
                 data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$push": {"flags": args["user_id"]}})
+                data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$push": {"solutions_flagged": args["solution_id"]}})
+            #removing flag
             elif args["flag"] == "False" and data_base.solutions.find_one({"_id": ObjectId(args["solution_id"]), "flags": {"$in": [args["user_id"]]}}) != None:
-                print("passed here")
                 data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$pull": {"flags": args["user_id"]}})
+                data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$pull": {"solutions_flagged": args["solution_id"]}})
+
+            # endorsing and updating endorsement status
+            #endorsing
+            if args["endorsement"] == "True" and data_base.solutions.find_one({"_id": ObjectId(args["solution_id"]), "endorsements": {"$in": [args["user_id"]]}}) == None:
+                #updating endorsement in solution information
+                data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$push": {"flags": args["user_id"]}})
+                #updating endorsement in users profile
+                data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$push": {"solutions_endorsed": args["solution_id"]}})
+                #increasing solution points based on endorser points
+                data_base.solution.update_one({"_id": ObjectId(args["solution_id"])}, {"$inc": {"points": user_info["points"]}})
+
+            #removing endorsement
+            elif args["endorsement"] == "False" and data_base.solutions.find_one({"_id": ObjectId(args["solution_id"]), "endorsements": {"$in": [args["user_id"]]}}) != None:
+                #updating endorsement in solution information
+                data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$pull": {"flags": args["user_id"]}})
+                #updating endorsement in users profile
+                data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$pull": {"solutions_endorsed": args["solution_id"]}})
+                #decreasing solution points based on endorser points
+                data_base.solution.update_one({"_id": ObjectId(args["solution_id"])}, {"$inc": {"points": -user_info["points"]}})
 
             return {
                 "status": True,
