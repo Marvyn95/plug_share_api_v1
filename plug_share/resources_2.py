@@ -52,25 +52,47 @@ class GeneralGeneral_2(Resource):
 need_info_parser = reqparse.RequestParser()
 need_info_parser.add_argument("user_id", location="args", type=str)
 need_info_parser.add_argument("need_id", location="args", type=str)
+need_info_parser.add_argument("sub_category_id", location="args", type=str)
 
 # get all need info
 class GeneralGeneral_3(Resource):
     def get(self):
         try:
             args = need_info_parser.parse_args()
-            need_info = data_base.needs.find_one({"_id": ObjectId(args["need_id"])})
+            category = data_base.needs.find_one({"_id": ObjectId(args["sub_category_id"])})
+            for x in category["votes"]:
+                if x["need_id"] == args["need_id"]:
+                    poster_info = data_base.users.find_one({"_id": ObjectId(x["user_id"])})
+                    for y in poster_info["needs"]:
+                        if y["need_id"] == args["need_id"]:
+                            need = y
+                            need["need_poster_id"] = str(poster_info["_id"])
+                            need["need_poster_name"] = poster_info["user_name"]
+                            need["need_poster_email"] = poster_info["email"]
+            
+            #finding need solutions and added them to return object
+            need_solutions = []
+            for k in category["solutions_submitted"]:
+                if k["need_id"] == args["need_id"]:
+                    sol = data_base.solutions.find_one({"_id": ObjectId(k["solution_id"])})
+                    sol["_id"] = str(sol["_id"])
 
-            array_01 = []
-            for item in need_info["solutions_submitted"]:
-                nd = data_base.solutions.find_one({"_id": ObjectId(item)})
-                nd["_id"] = str(nd["_id"])
-                array_01.append(nd)
-            need_info["solutions_submitted"] = array_01
-            need_info["_id"] = str(need_info["_id"])
+                    #getting and adding solution poster key info
+                    sol_poster = data_base.users.find_one({"_id": ObjectId(sol["user_id"])})
+                    sol_poster_key_info = {
+                        "id": str(sol_poster["_id"]),
+                        "name": sol_poster["user_name"],
+                        "email": sol_poster["email"],
+                        "stars": sol_poster["stars"],
+                        "points": sol_poster["points"]
+                    }
+                    sol["solution_poster_info"] = sol_poster_key_info
+                    need_solutions.append(sol)
+            need["solutions_posted"] = need_solutions
 
             return {
                 "status": True,
-                "need_info": need_info
+                "need_info": need
             }
         except Exception as e:
             return {

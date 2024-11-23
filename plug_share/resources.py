@@ -178,6 +178,7 @@ class CommunityNeeds(Resource):
                     
                     need[0]["need_category"] = item["categories"]
                     need[0]["need_sub_category"] = item["sub_categories"]
+                    need[0]["poster's_id"] = x["user_id"]
                     need[0]["poster's_name"] = user["user_name"]
                     need[0]["poster's_email"] = user["email"]
                     need[0]["poster's_stars"] = user["stars"]
@@ -227,27 +228,21 @@ class CommunityNeeds(Resource):
             }
 
     def delete(self):
-        try:
-            args = needs_deletion_parser.parse_args()
-            # deleting need from user's need list
-            data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$pull": {"needs": {"need_id": args["need_id"]}}})
-            #reducing votes in the general needs list
-            votes = data_base.needs.find_one({"_id": ObjectId(args["sub_category_id"])})["votes"]
-            if votes:
-                try:
-                    votes = [vote for vote in votes if vote["need_id"] != args["need_id"]]
-                except:
-                    pass
-            data_base.needs.update_one({"_id": ObjectId(args["sub_category_id"])}, {"$set": {"votes": votes}})
-            return {
-                "status": True,
-                "message": "Need deleted Successfully :)"
-            }
-        except Exception as e:
-            return {
-                "status": "Error",
-                "Error": e
-            }
+        args = needs_deletion_parser.parse_args()
+        # deleting need from user's need list
+        data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$pull": {"needs": {"need_id": args["need_id"]}}})
+        #reducing votes in the general needs list
+        votes = data_base.needs.find_one({"_id": ObjectId(args["sub_category_id"])})["votes"]
+        if votes:
+            try:
+                votes = [vote for vote in votes if vote["need_id"] != args["need_id"]]
+            except:
+                pass
+        data_base.needs.update_one({"_id": ObjectId(args["sub_category_id"])}, {"$set": {"votes": votes}})
+        return {
+            "status": True,
+            "message": "Need deleted Successfully :)"
+        }
     
 
 # parser for submitting a solution
@@ -337,42 +332,40 @@ class Solutions(Resource):
     
     #getting solution info
     def get(self):
-        try:
-            args = solution_info_parser.parse_args()
-            solution_info = data_base.solutions.find_one({"_id": ObjectId(args["solution_id"])})
-            solution_info["_id"] = str(solution_info["_id"])
-            
-            #getting poster's info and adding it to return odject
-            poster_info = data_base.users.find_one({"_id": ObjectId(args["user_id"])})
-            solution_info["poster_info"] = {
-                "poster_name": poster_info["user_name"],
-                "poster_email": poster_info["email"],
-                "poster_stars": poster_info["stars"],
-                "poster_points": poster_info["points"]
-            }
-
-            #getting need info and adding it to return object
-            for item in poster_info["needs"]:
-                if item["need_id"] == solution_info["need_id"]:
-                    need = item
-            category_info = data_base.needs.find_one({"_id": ObjectId(solution_info["need_sub_category_id"])})
-            
-            solution_info["need_info"] = { 
-                "category": category_info["categories"],
-                "sub_category": category_info["sub_categories"],
-                "location_needed": need["location"],
-                "purpose": need["purpose"]
-            }
-            return {
-                "status": True,
-                "solution": solution_info
-            }
+        args = solution_info_parser.parse_args()
+        solution_info = data_base.solutions.find_one({"_id": ObjectId(args["solution_id"])})
+        solution_info["_id"] = str(solution_info["_id"])
         
-        except Exception as e:
-            return {
-                "status": "Error",
-                "Error": e
-            }
+        #getting poster's info and adding it to return odject
+        poster_info = data_base.users.find_one({"_id": ObjectId(solution_info["user_id"])})
+        solution_info["poster_info"] = {
+            "poster_name": poster_info["user_name"],
+            "poster_email": poster_info["email"],
+            "poster_stars": poster_info["stars"],
+            "poster_points": poster_info["points"]
+        }
+
+        #getting need info and adding it to return object
+        category_info = data_base.needs.find_one({"_id": ObjectId(solution_info["need_sub_category_id"])})
+        for x in category_info["votes"]:
+            if x["need_id"] == solution_info["need_id"]:
+                vote = x
+                need_poster_info = data_base.users.find_one({"_id": ObjectId(vote["user_id"])})
+                for y in need_poster_info["needs"]:
+                    if y["need_id"] == solution_info["need_id"]:
+                        need = y
+        
+        solution_info["need_info"] = { 
+            "category": category_info["categories"],
+            "sub_category": category_info["sub_categories"],
+            "location_needed": need["location"],
+            "purpose": need["purpose"]
+        }
+        return {
+            "status": True,
+            "solution": solution_info
+        }
+
     
     #edit solution info
     # @jwt_required()
