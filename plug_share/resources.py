@@ -479,15 +479,6 @@ class SolutionReviews(Resource):
 
         #if user already reviewed item
         elif data_base.solutions.find_one({"_id": ObjectId(args["solution_id"]), "reviews": {"$elemMatch": {"user_id": args["user_id"]}}}) != None:
-            
-            #removing old review from solution in database
-            data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$pull": {"reviews": {"user_id": args["user_id"]}}})
-            #adding new review to solution in database
-            data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$push": {"reviews": {
-                "user_id": args["user_id"],
-                "solution_rating": solution_rating
-            }}})
-
 
             #removing points from endorsers for old review
             #computing total weight among endorsers
@@ -506,13 +497,13 @@ class SolutionReviews(Resource):
                     for j in i["review"]:
                         if j == "True":
                             old_solution_rating += 1
-
+            
+            # deducting points for old rating from endorsers
             for item in solution_info["endorsements"]:
                 points_to_deduct = (no_of_endorsers/weight)*old_solution_rating
                 data_base.users.update_one({"_id": ObjectId(item)}, {"$inc": {"points": -points_to_deduct}})
                 no_of_endorsers -= 1
 
-                
             #distributing new points to endorsers
             # distributing points based on stars to each endorsers
             no_of_endorsers = len(solution_info["endorsements"])
@@ -521,6 +512,13 @@ class SolutionReviews(Resource):
                 data_base.users.update_one({"_id": ObjectId(item)}, {"$inc": {"points": points_to_add}})
                 no_of_endorsers -= 1
 
+            #removing old review from solution in database
+            data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$pull": {"reviews": {"user_id": args["user_id"]}}})
+            #adding new review to solution in database
+            data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$push": {"reviews": {
+                "user_id": args["user_id"],
+                "solution_rating": solution_rating
+            }}})
 
 
             #updating solution owners stars in database
