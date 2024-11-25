@@ -462,6 +462,21 @@ class SolutionReviews(Resource):
             #updating solution owner's stars
             data_base.users.update_one({"_id": ObjectId(solution_info["user_id"])}, {"$inc": {"stars": solution_rating}})
 
+            #distributing stars among endorsers
+            #computing total weight distribution among endorsers (weight)
+            weight = 0
+            no_of_endorsers = len(solution_info["endorsements"])
+            for item in solution_info["endorsements"]:
+                weight += no_of_endorsers
+                no_of_endorsers -= 1
+
+            # distributing points based on stars to each endorsers
+            no_of_endorsers = len(solution_info["endorsements"])
+            for item in solution_info["endorsements"]:
+                points_to_add = (no_of_endorsers/weight)*solution_rating
+                data_base.users.update_one({"_id": ObjectId(item)}, {"$inc": {"points": points_to_add}})
+                no_of_endorsers -= 1
+
         #if user already reviewed item
         elif data_base.solutions.find_one({"_id": ObjectId(args["solution_id"]), "reviews": {"$elemMatch": {"user_id": args["user_id"]}}}) != None:
             
@@ -472,6 +487,41 @@ class SolutionReviews(Resource):
                 "user_id": args["user_id"],
                 "solution_rating": solution_rating
             }}})
+
+
+            #removing points from endorsers for old review
+            #computing total weight among endorsers
+            weight = 0
+            no_of_endorsers = len(solution_info["endorsements"])
+            for item in solution_info["endorsements"]:
+                weight += no_of_endorsers
+                no_of_endorsers -= 1
+
+            # distributing points deductions based on stars to each endorsers
+            no_of_endorsers = len(solution_info["endorsements"])
+            # getting old solution rating
+            old_solution_rating = 0
+            for i in user_info["solutions_reviewed"]:
+                if i["solution_id"] == str(solution_info["_id"]):
+                    for j in i["review"]:
+                        if j == "True":
+                            old_solution_rating += 1
+
+            for item in solution_info["endorsements"]:
+                points_to_deduct = (no_of_endorsers/weight)*old_solution_rating
+                data_base.users.update_one({"_id": ObjectId(item)}, {"$inc": {"points": -points_to_deduct}})
+                no_of_endorsers -= 1
+
+                
+            #distributing new points to endorsers
+            # distributing points based on stars to each endorsers
+            no_of_endorsers = len(solution_info["endorsements"])
+            for item in solution_info["endorsements"]:
+                points_to_add = (no_of_endorsers/weight)*solution_rating
+                data_base.users.update_one({"_id": ObjectId(item)}, {"$inc": {"points": points_to_add}})
+                no_of_endorsers -= 1
+
+
 
             #updating solution owners stars in database
             for rev in user_info["solutions_reviewed"]:
@@ -504,7 +554,6 @@ class SolutionReviews(Resource):
             data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$pull": {"flags": args["user_id"]}})
             data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$pull": {"solutions_flagged": args["solution_id"]}})
 
-
         # endorsing and updating endorsement status
         #endorsing
         #checking if user is an endorser
@@ -514,17 +563,18 @@ class SolutionReviews(Resource):
                 #getting all other solutions
                 other_solutions_submitted = [sol for sol in data_base.solutions.find({"need_id": solution_info["need_id"]}) if str(sol["_id"]) != args["solution_id"]]
                 # checking if user has endorsed any
+                endorsement_status = False
                 for item in list(other_solutions_submitted):
-                    endorsement_status = False
                     if args["user_id"] in item["endorsements"]:
                         endorsement_status = True
-                if endorsement_status:
+                if not endorsement_status:
                     #updating endorsement in solution information
                     data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$push": {"endorsements": args["user_id"]}})
                     #updating endorsement in users profile
                     data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$push": {"solutions_endorsed": args["solution_id"]}})
                     #increasing solution points based on endorser points
                     data_base.solution.update_one({"_id": ObjectId(args["solution_id"])}, {"$inc": {"points": user_info["points"]}})
+
 
             #removing endorsement
             elif args["endorsement"] == "False" and data_base.solutions.find_one({"_id": ObjectId(args["solution_id"]), "endorsements": {"$in": [args["user_id"]]}}) != None:
