@@ -305,7 +305,8 @@ class Solutions(Resource):
                     "reviews": [],
                     "points": 0,
                     "endorsements": [],
-                    "alternative": []
+                    "alternative_solution": [],
+                    "primary_solution": []
                 }
                 
                 #populating database collections
@@ -479,7 +480,6 @@ class SolutionReviews(Resource):
 
         #if user already reviewed item
         elif data_base.solutions.find_one({"_id": ObjectId(args["solution_id"]), "reviews": {"$elemMatch": {"user_id": args["user_id"]}}}) != None:
-
             #removing points from endorsers for old review
             #computing total weight among endorsers
             weight = 0
@@ -548,7 +548,7 @@ class SolutionReviews(Resource):
             data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$push": {"flags": args["user_id"]}})
             data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$push": {"solutions_flagged": args["solution_id"]}})
         #removing flag
-        elif args["flag"] == "False" and data_base.solutions.find_one({"_id": ObjectId(args["solution_id"]), "flags": {"$in": [args["user_id"]]}}) != None:
+        elif args["flag"] != "True" and data_base.solutions.find_one({"_id": ObjectId(args["solution_id"]), "flags": {"$in": [args["user_id"]]}}) != None:
             data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$pull": {"flags": args["user_id"]}})
             data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$pull": {"solutions_flagged": args["solution_id"]}})
 
@@ -573,9 +573,8 @@ class SolutionReviews(Resource):
                     #increasing solution points based on endorser points
                     data_base.solution.update_one({"_id": ObjectId(args["solution_id"])}, {"$inc": {"points": user_info["points"]}})
 
-
             #removing endorsement
-            elif args["endorsement"] == "False" and data_base.solutions.find_one({"_id": ObjectId(args["solution_id"]), "endorsements": {"$in": [args["user_id"]]}}) != None:
+            elif args["endorsement"] != "True" and data_base.solutions.find_one({"_id": ObjectId(args["solution_id"]), "endorsements": {"$in": [args["user_id"]]}}) != None:
                 #updating endorsement in solution information
                 data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$pull": {"endorsements": args["user_id"]}})
                 #updating endorsement in users profile
@@ -587,3 +586,6 @@ class SolutionReviews(Resource):
             "status": True,
             "message": "Your Review Has Been Submitted Successfully! :)"
         }
+
+
+        
