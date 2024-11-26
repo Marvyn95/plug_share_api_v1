@@ -1,4 +1,4 @@
-from flask_restful import Resource, Api, reqparse
+from flask_restful import Resource, reqparse
 import bcrypt
 from flask import jsonify
 from plug_share import data_base, jwt
@@ -32,46 +32,39 @@ edit_user_details_parser.add_argument("user_id", required=True, location="args")
 class User(Resource):
     # creating a new user / signing up
     def put(self):
-        try:
-            args=new_user_parser.parse_args()
-            if data_base.users.find_one({"email": args["email"]}) != None:
-                return {
-                    "status": False,
-                    "message": "Account Already Exists!"
-                }
-            if args["password"] == args["confirm_password"]:
-                hashed_password = bcrypt.hashpw(args["password"].encode("utf-8"), bcrypt.gensalt())
-                new_user = {
-                    "user_name": args["user_name"],
-                    "email": args["email"],
-                    "password": hashed_password.decode("utf-8"),
-                    "needs": [],
-                    "solutions_submitted": [],
-                    "solutions_rated": [],
-                    "role": "Member",
-                    "stars": 0,
-                    "points": 0,
-                    "solutions_flagged": [],
-                    "solutions_reviewed": [],
-                    "solutions_endorsed": [] 
-                }
-                data_base.users.insert_one(new_user)
-                return {
-                    "status": True,
-                    "user_name": args["user_name"],
-                    "email": args["email"],
-                    "message": "Account Created Successfuly :)"
-                }
-            else:
-                return {
-                    "status": False,
-                    "message": "Account Creation Not Successful, Check Email and Password"
-                }
-
-        except Exception as e:
+        args=new_user_parser.parse_args()
+        if data_base.users.find_one({"email": args["email"]}) != None:
             return {
-                "status": "Error",
-                "Error": e
+                "status": False,
+                "message": "Account Already Exists!"
+            }
+        if args["password"] == args["confirm_password"]:
+            hashed_password = bcrypt.hashpw(args["password"].encode("utf-8"), bcrypt.gensalt())
+            new_user = {
+                "user_name": args["user_name"],
+                "email": args["email"],
+                "password": hashed_password.decode("utf-8"),
+                "needs": [],
+                "solutions_submitted": [],
+                "solutions_rated": [],
+                "role": "Member",
+                "stars": 0,
+                "points": 0,
+                "solutions_flagged": [],
+                "solutions_reviewed": [],
+                "solutions_endorsed": [] 
+            }
+            data_base.users.insert_one(new_user)
+            return {
+                "status": True,
+                "user_name": args["user_name"],
+                "email": args["email"],
+                "message": "Account Created Successfuly :)"
+            }
+        else:
+            return {
+                "status": False,
+                "message": "Account Creation Not Successful, Check Email and Password"
             }
 
 

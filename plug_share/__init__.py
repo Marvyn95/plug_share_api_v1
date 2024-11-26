@@ -1,17 +1,21 @@
 from flask import Flask
-from flask_restful import Resource, Api
+from flask_restful import Api
 import pymongo
 from pymongo import MongoClient
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+import json
+
+with open("plug_share/config.json", "r") as file:
+    config = json.load(file)
 
 # flask app and api instance creation
 app = Flask(__name__)
 api = Api(app)
-app.config['JWT_SECRET_KEY'] = 'plugshare_v1_12345'
+app.config['JWT_SECRET_KEY'] = config.get("JWT_SECRET_KEY")
 jwt = JWTManager(app)
 
 # mongoDB database connection
-conn_string = "mongodb://Marvin:Marvollos95.@localhost:27017/"
+conn_string = config.get("plugshare_mongodb_conn_string")
 cluster = pymongo.MongoClient(conn_string)
 data_base = cluster["plug_share_01"]
 

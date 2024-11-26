@@ -1,2 +1,3 @@
 plug_share_venv/
 __pycache__/
+config.json

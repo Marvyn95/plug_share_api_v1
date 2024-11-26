@@ -1,10 +1,8 @@
-from flask_restful import Resource, Api, reqparse
-import bcrypt
+from flask_restful import Resource, reqparse
 from flask import jsonify
 from plug_share import data_base, jwt
 from bson import ObjectId
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-import datetime
 
 class GeneralGeneral_1(Resource):
     #gets all needs
@@ -134,7 +132,6 @@ class Plugs(Resource):
                 "Error": e
             }
         
-
 #parser for getting solution alternatives
 get_alternatives_parser = reqparse.RequestParser()
 get_alternatives_parser.add_argument("user_id", location="args", type=str)
