@@ -133,3 +133,25 @@ class Plugs(Resource):
                 "status": "Error",
                 "Error": e
             }
+        
+
+#parser for getting solution alternatives
+get_alternatives_parser = reqparse.RequestParser()
+get_alternatives_parser.add_argument("user_id", location="args", type=str)
+get_alternatives_parser.add_argument("solution_id", location="args", type=str)
+
+#getting all alternatives to solution
+class Alternatives(Resource):
+    def get(self):
+        args = get_alternatives_parser.parse_args()
+        alternatives = data_base.solutions.find_one({"_id": ObjectId(args["solution_id"])})["alternative_solutions"]
+        detailed_alternatives = []
+        for item in alternatives:
+            alternative_info = data_base.solutions.find_one({"_id": ObjectId(item["alternative_solution_id"])})
+            alternative_info["_id"] = str(alternative_info["_id"])
+            detailed_alternatives.append(alternative_info)
+
+        return {
+            "status": True,
+            "alternative_solutions": detailed_alternatives
+        }

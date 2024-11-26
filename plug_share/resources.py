@@ -305,8 +305,8 @@ class Solutions(Resource):
                     "reviews": [],
                     "points": 0,
                     "endorsements": [],
-                    "alternative_solution": [],
-                    "primary_solution": []
+                    "alternative_solutions": [],
+                    "primary_solutions": []
                 }
                 
                 #populating database collections
@@ -588,4 +588,90 @@ class SolutionReviews(Resource):
         }
 
 
+#getting endorsed solutions parser
+get_endorsements_parser = reqparse.RequestParser()
+get_endorsements_parser.add_argument("user_id", location="args", type=str)
+
+#submit alternative parser
+submit_alternative_parser = reqparse.RequestParser()
+submit_alternative_parser.add_argument("user_id", location="args", type=str)
+submit_alternative_parser.add_argument("solution_id", location="args", type=str)
+submit_alternative_parser.add_argument("alternative_id", location="args", type=str)
+
+#delete alternative parser
+delete_alternative_parser = reqparse.RequestParser()
+delete_alternative_parser.add_argument("user_id", location="args", type=str)
+delete_alternative_parser.add_argument("solution_id", location="args", type=str)
+delete_alternative_parser.add_argument("alternative_id", location="args", type=str)
+
+
+#getting user endorsed solutions
+class Endorsements(Resource):
+    #get all solutions endorsed by user
+    def get(set):
+        args = get_endorsements_parser.parse_args()
+        endorsements_list = data_base.users.find_one({"_id": ObjectId(args["user_id"])})["solutions_endorsed"]
+        detailed_endorsements_list = []
+        #generating endorsement objects
+        for item in endorsements_list:
+            endorsement = data_base.solutions.find_one({"_id": ObjectId(item)})
+            endorsement["_id"] = str(endorsement["_id"])
+            detailed_endorsements_list.append(endorsement)
         
+        return {
+            "status": True,
+            "endorsements": detailed_endorsements_list
+        }
+    
+    #submitting alternative
+    def post(self):
+        args = submit_alternative_parser.parse_args()
+
+        if not data_base.solutions.find_one({"_id": ObjectId(args["solution_id"]), "alternative_solutions": {"$elemMatch": {
+            "submitter_id": args["user_id"], "alternative_solution_id": args["alternative_id"]
+        }}}):
+            #adding alternative solution to the primary
+            data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$push": {"alternative_solutions": {
+                "submitter_id": args["user_id"],
+                "alternative_solution_id": args["alternative_id"]
+            }}})
+            #adding primary solution to alternative
+            data_base.solutions.update_one({"_id": ObjectId(args["alternative_id"])}, {"$push": {"primary_solutions": {
+                "submitter_id": args["user_id"],
+                "primary_solution_id": args["solution_id"]            
+            }}})
+
+            return {
+                "status": True,
+                "message": "Your Alternative Has Been Submitted Successfully! :)"
+            }
+        else:
+            return {
+                "status": False
+            }
+
+    #remove alternative
+    def delete(self):
+        args = delete_alternative_parser.parse_args()
+        if data_base.solutions.find_one({"_id": ObjectId(args["solution_id"]), "alternative_solutions": {"$elemMatch": {
+            "submitter_id": args["user_id"], "alternative_solution_id": args["alternative_id"]
+        }}}):
+            #removing alternative solution from primary
+            data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$pull": {"alternative_solutions": {
+                "submitter_id": args["user_id"],
+                "alternative_solution_id": args["alternative_id"]
+            }}})
+            #removing primary solution from alternative
+            data_base.solutions.update_one({"_id": ObjectId(args["alternative_id"])}, {"$pull": {"primary_solutions": {
+                "submitter_id": args["user_id"],
+                "primary_solution_id": args["solution_id"]            
+            }}})
+
+            return {
+                "status": True,
+                "message": "Your Alternative Has Been Removed  Successfully! :)"
+            }
+        else:
+            return {
+                "status": False
+            }
