@@ -343,18 +343,16 @@ class Solutions(Resource):
         category_info = data_base.needs.find_one({"_id": ObjectId(solution_info["need_sub_category_id"])})
         for x in category_info["votes"]:
             if x["need_id"] == solution_info["need_id"]:
-                vote = x
-                need_poster_info = data_base.users.find_one({"_id": ObjectId(vote["user_id"])})
+                need_poster_info = data_base.users.find_one({"_id": ObjectId(x["user_id"])})
                 for y in need_poster_info["needs"]:
                     if y["need_id"] == solution_info["need_id"]:
-                        need = y
-        
-        solution_info["need_info"] = { 
-            "category": category_info["categories"],
-            "sub_category": category_info["sub_categories"],
-            "location_needed": need["location"],
-            "purpose": need["purpose"]
-        }
+                        solution_info["need_info"] = { 
+                            "category": category_info["categories"],
+                            "sub_category": category_info["sub_categories"],
+                            "location_needed": y["location"],
+                            "purpose": y["purpose"]
+                        }
+
         return {
             "status": True,
             "solution": solution_info
@@ -546,12 +544,15 @@ class SolutionReviews(Resource):
 
         # flagging and updating flag status
         #flagging
-        if args["flag"] == "True" and data_base.solutions.find_one({"_id": ObjectId(args["solution_id"]), "flags": {"$in": [args["user_id"]]}}) == None:
-            data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$push": {"flags": args["user_id"]}})
+        if args["flag"] == "True" and data_base.solutions.find_one({"_id": ObjectId(args["solution_id"]), "flags.user_id": args["user_id"]}) == None:
+            data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$push": {"flags": {
+                "user_id": args["user_id"],
+                "flag_enforcement_status": False 
+            }}})
             data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$push": {"solutions_flagged": args["solution_id"]}})
         #removing flag
-        elif args["flag"] != "True" and data_base.solutions.find_one({"_id": ObjectId(args["solution_id"]), "flags": {"$in": [args["user_id"]]}}) != None:
-            data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$pull": {"flags": args["user_id"]}})
+        elif args["flag"] != "True" and data_base.solutions.find_one({"_id": ObjectId(args["solution_id"]), "flags.user_id": args["user_id"]}) != None:
+            data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$pull": {"flags": {"user_id": args["user_id"]}}})
             data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$pull": {"solutions_flagged": args["solution_id"]}})
 
         # endorsing and updating endorsement status
