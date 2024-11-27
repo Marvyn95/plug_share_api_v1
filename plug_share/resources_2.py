@@ -146,6 +146,16 @@ class Alternatives(Resource):
         for item in alternatives:
             alternative_info = data_base.solutions.find_one({"_id": ObjectId(item["alternative_solution_id"])})
             alternative_info["_id"] = str(alternative_info["_id"])
+
+            #getting poster's info and adding it to return odject
+            poster_info = data_base.users.find_one({"_id": ObjectId(alternative_info["user_id"])})
+            alternative_info["poster_info"] = {
+                "poster_name": poster_info["user_name"],
+                "poster_email": poster_info["email"],
+                "poster_stars": poster_info["stars"],
+                "poster_points": poster_info["points"]
+            }
+            
             detailed_alternatives.append(alternative_info)
 
         return {

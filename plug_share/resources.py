@@ -400,10 +400,19 @@ class Solutions(Resource):
 
             #deleting solution references from users collection as well
             data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$pull": {"solutions_submitted": args["solution_id"]}})
+
+            #deleting solution references from all its alternatives references as well
+            for item in solution_info["primary_solutions"]:
+                data_base.solutions.update_one({"_id": ObjectId(item["primary_solution_id"])}, {"$pull": {"alternative_solutions": {
+                    "alternative_solution_id": str(solution_info["_id"])
+                }}})
+
             return {
                 "status": True,
                 "message": "Solution Has Been Deleted Successfully ! :)"
             }
+
+
         except Exception as e:
             return {
                 "status": False,

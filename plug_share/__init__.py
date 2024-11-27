@@ -19,7 +19,7 @@ cluster = pymongo.MongoClient(conn_string)
 data_base = cluster["plug_share_01"]
 
 from plug_share.resources import User, CommunityNeeds, Solutions, SolutionReviews, Endorsements
-from plug_share.resources_2 import GeneralGeneral_1, GeneralGeneral_2,GeneralGeneral_3, Plugs
+from plug_share.resources_2 import GeneralGeneral_1, GeneralGeneral_2,GeneralGeneral_3, Plugs, Alternatives
 # adding all resources      
 api.add_resource(User, "/users")
 api.add_resource(CommunityNeeds, "/communityneeds")
@@ -30,3 +30,4 @@ api.add_resource(GeneralGeneral_3, "/need_info")
 api.add_resource(SolutionReviews, "/reviews")
 api.add_resource(Plugs, "/plugs")
 api.add_resource(Endorsements, "/endorsements")
+api.add_resource(Alternatives, "/alternatives")
