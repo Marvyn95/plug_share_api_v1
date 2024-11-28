@@ -95,6 +95,7 @@ class User(Resource):
                     return {
                         "status": True,
                         "message": "Login Successful",
+                        "user_id": str(user_01["_id"]),
                         "user_name": user_01["user_name"], 
                         "user_email": user_01["email"],
                         "access_token": access_token
