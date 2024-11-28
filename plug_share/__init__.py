@@ -2,9 +2,12 @@ from flask import Flask
 from flask_restful import Api
 import pymongo
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-import json
+import json, os
 
-with open("plug_share/config.json", "r") as file:
+base_dir = os.path.dirname(os.path.abspath("run.py"))
+config_path = os.path.join(base_dir, "plug_share", "config.json")
+
+with open(config_path, "r") as file:
     config = json.load(file)
 
 # flask app and api instance creation
