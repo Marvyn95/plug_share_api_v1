@@ -157,37 +157,31 @@ needs_deletion_parser.add_argument("need_id", type=str, location="args")
 class CommunityNeeds(Resource):
     # getting top needs 
     def get(self):
-        try:
-            #getting all need categories
-            user_selected_needs = [item for item in list(data_base.needs.find()) if item["votes"] != []]
-            #sorting based on largest selected category and getting top 30 categories
-            sorted_user_selected_needs = sorted(user_selected_needs, key = lambda x: len(x["votes"]))[:30]
-            top_needs = []
-            count = 0
-            for item in sorted_user_selected_needs:
-                for x in item["votes"]:
-                    user = data_base.users.find_one({"_id": ObjectId(x["user_id"])})
-                    need = [y for y in user["needs"] if y["need_id"] == x["need_id"]]
-                    
-                    need[0]["need_category"] = item["categories"]
-                    need[0]["need_sub_category"] = item["sub_categories"]
-                    need[0]["poster's_id"] = x["user_id"]
-                    need[0]["poster's_name"] = user["user_name"]
-                    need[0]["poster's_email"] = user["email"]
-                    need[0]["poster's_stars"] = user["stars"]
-                    need[0]["poster's_points"] = user["points"]
+        #getting all need categories
+        user_selected_needs = [item for item in list(data_base.needs.find()) if item["votes"] != []]
+        #sorting based on largest selected category and getting top 30 categories
+        sorted_user_selected_needs = sorted(user_selected_needs, key = lambda x: len(x["votes"]))[:30]
+        top_needs = []
+        count = 0
+        for item in sorted_user_selected_needs:
+            for x in item["votes"]:
+                user = data_base.users.find_one({"_id": ObjectId(x["user_id"])})
+                need = [y for y in user["needs"] if y["need_id"] == x["need_id"]]
+                
+                need[0]["need_category"] = item["categories"]
+                need[0]["need_sub_category"] = item["sub_categories"]
+                need[0]["poster's_id"] = x["user_id"]
+                need[0]["poster's_name"] = user["user_name"]
+                need[0]["poster's_email"] = user["email"]
+                need[0]["poster's_stars"] = user["stars"]
+                need[0]["poster's_points"] = user["points"]
 
-                    top_needs.append(need[0])
-                    count += 1
-            return{
-                "count": count,
-                "top_needs": top_needs
-            }
-        except Exception as e:
-            return {
-                "status": "Error",
-                "Error": e
-            }
+                top_needs.append(need[0])
+                count += 1
+        return{
+            "count": count,
+            "top_needs": top_needs
+        }
 
     # adding needs to profile
     # @jwt_required()
