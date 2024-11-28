@@ -38,7 +38,7 @@ class GeneralGeneral_2(Resource):
             
             return{
                 "count": count,
-                "top_needs": all_solutions
+                "all_solutions": all_solutions
             }
         except Exception as e:
             return {
