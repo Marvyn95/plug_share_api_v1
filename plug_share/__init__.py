@@ -5,7 +5,7 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 import json, os
 
 base_dir = os.path.dirname(os.path.abspath("run.py"))
-config_path = os.path.join(base_dir, "plug_share", "config.json")
+config_path = os.path.join(base_dir,"config.json")
 
 with open(config_path, "r") as file:
     config = json.load(file)
