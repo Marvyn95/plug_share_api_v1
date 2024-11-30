@@ -3,6 +3,7 @@ from flask_restful import Api
 import pymongo
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 import json, os
+from flask_cors import CORS
 
 base_dir = os.path.dirname(os.path.abspath("run.py"))
 config_path = os.path.join(base_dir,"config.json")
@@ -13,6 +14,8 @@ with open(config_path, "r") as file:
 # flask app and api instance creation
 app = Flask(__name__)
 api = Api(app)
+CORS(app)
+
 app.config['JWT_SECRET_KEY'] = config.get("JWT_SECRET_KEY")
 jwt = JWTManager(app)
 
