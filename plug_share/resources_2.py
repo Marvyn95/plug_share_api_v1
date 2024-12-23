@@ -3,6 +3,7 @@ from flask import jsonify
 from plug_share import data_base, jwt
 from bson import ObjectId
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+import secrets
 
 class GeneralGeneral_1(Resource):
     #gets all needs
@@ -157,3 +158,52 @@ class Alternatives(Resource):
             "status": True,
             "alternative_solutions": detailed_alternatives
         }
+    
+
+
+#parser for upvoting or removing vote
+need_vote_parser = reqparse.RequestParser()
+need_vote_parser.add_argument("user_id", location="args", type=str) 
+need_vote_parser.add_argument("need_owner_id", location="args", type=str) 
+need_vote_parser.add_argument("need_id", location="args", type=str)
+
+#upvoting and downvoting needs by users
+class NeedVotes(Resource):
+    def post(self):
+        args = need_vote_parser.parse_args()
+
+        #getting user info
+        user_01 = data_base.users.find_one({"_id": ObjectId(args["user_id"])})
+        
+        # getting upvoted need info
+        need_owner_info = data_base.users.find_one({"_id": ObjectId(args["need_owner_id"])})
+        for item in need_owner_info["needs"]:
+            if item["need_id"] == args["need_id"]:
+                need_info = item
+                break
+        
+        # adding need to user profile
+        new_need_id = secrets.token_hex(16)
+        if len(user_01["needs"]) < 3:
+            data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$push": {"needs": {
+                "need_id": new_need_id,
+                "sub_category_id": need_info["sub_category_id"],
+                "location": need_info["location"],
+                "purpose": need_info["purpose"]
+            }}})
+
+            data_base.needs.update_one({"_id": ObjectId(need_info["sub_category_id"])}, {"$push": {"votes": {
+                "user_id": args["user_id"],
+                "need_id": new_need_id
+            }}})
+
+            return {
+                "status": True,
+                "message": "You Have Upvoted This Need Succesfully and It Has Been Added To Your List Of Needs"
+            }
+        else:
+            return {
+                "status": False,
+                "message": "Your List of Needs is Already Full! :)"
+            }
+
