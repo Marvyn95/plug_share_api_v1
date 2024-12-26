@@ -52,7 +52,7 @@ class User(Resource):
                 "solutions_flagged": [],
                 "solutions_endorsed": [],
                 "handshakes": 0,
-                "handshakes_given": [],
+                "handshakes_given": []
             }
             data_base.users.insert_one(new_user)
             return {
