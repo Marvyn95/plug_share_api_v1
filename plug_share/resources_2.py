@@ -102,25 +102,13 @@ class Plugs(Resource):
             reviewed_solutions = []
             for item in all_solutions:
                 item["_id"] = str(item["_id"])
-                if len(item["reviews"]) != 0:
-                    total_stars = 0
-                    for review in item["reviews"]:
-                        total_stars += review["solution_rating"]
-                    item["overall_star_rating"] = ((total_stars)/(5*(len(item["reviews"]))))*5
+                if len(item["handshakes"]) != 0:
                     reviewed_solutions.append(item)
-
-            plugs = []
-            count = 0
-            for j in reviewed_solutions:
-                if j["overall_star_rating"] >= 3:
-                    plugs.append(j)
-                    count += 0
-            
-            plugs.sort(key=lambda x: x["overall_star_rating"], reverse=True)
+           
+            reviewed_solutions.sort(key=lambda x: x["overall_star_rating"], reverse=True)
             
             return {
-                "count": count,
-                "plugs": plugs
+                "plugs": reviewed_solutions[:30]
             }
         except Exception as e:
             return {

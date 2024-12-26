@@ -47,12 +47,12 @@ class User(Resource):
                 "needs": [],
                 "solutions_submitted": [],
                 "solutions_rated": [],
-                "role": "Member",
+                "role": "Endorser",
                 "stars": 0,
-                "handshakes": 0,
                 "solutions_flagged": [],
+                "solutions_endorsed": [],
+                "handshakes": 0,
                 "handshakes_given": [],
-                "solutions_endorsed": [] 
             }
             data_base.users.insert_one(new_user)
             return {
@@ -450,7 +450,7 @@ class SolutionReviews(Resource):
             #endorsers ?????
 
         #removing handshaking
-        elif args["flag"] != "True" and data_base.solutions.find_one({"_id": ObjectId(args["solution_id"]), "handshakes": {"$in": [args["user_id"]]}}) != None:
+        elif args["handshake"] != "True" and data_base.solutions.find_one({"_id": ObjectId(args["solution_id"]), "handshakes": {"$in": [args["user_id"]]}}) != None:
             data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$pull": {"handshakes": args["user_id"]}})
             data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$pull": {"handshakes_given": args["solution_id"]}})
             #updating handshakes for solution owner
