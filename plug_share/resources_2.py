@@ -102,7 +102,7 @@ class Plugs(Resource):
             reviewed_solutions = []
             for item in all_solutions:
                 item["_id"] = str(item["_id"])
-                if len(item["handshakes"]) != 0:
+                if len(item["endorsements"] != 0):
                     reviewed_solutions.append(item)
            
             reviewed_solutions.sort(key=lambda x: x["points"], reverse=True)
