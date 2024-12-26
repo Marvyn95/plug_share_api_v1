@@ -304,6 +304,7 @@ class Solutions(Resource):
                     "flags": [],
                     "handshakes": [],
                     "endorsements": [],
+                    "points": 0,
                     "alternative_solutions": [],
                     "primary_solutions": []
                 }
@@ -470,11 +471,12 @@ class SolutionReviews(Resource):
             data_base.solutions.update_one({"_id": ObjectId(args["solution_id"])}, {"$pull": {"flags": {"user_id": args["user_id"]}}})
             data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$pull": {"solutions_flagged": args["solution_id"]}})
 
+
         # endorsing and updating endorsement status
         #endorsing
         #checking if user is an endorser
         if user_info["role"] == "Endorser":
-            #endorsing
+            #endorsing solution
             if args["endorsement"] == "True" and data_base.solutions.find_one({"_id": ObjectId(args["solution_id"]), "endorsements": {"$in": [args["user_id"]]}}) == None:           
                 #checking if user has endorsed any other solution for the same specific need
                 #getting all other solutions
@@ -490,7 +492,7 @@ class SolutionReviews(Resource):
                     #updating endorsement in users profile
                     data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$push": {"solutions_endorsed": args["solution_id"]}})
                     #increasing solution points based on endorser points
-                    data_base.solution.update_one({"_id": ObjectId(args["solution_id"])}, {"$inc": {"points": user_info["points"]}})
+                    data_base.solution.update_one({"_id": ObjectId(args["solution_id"])}, {"$inc": {"points": user_info["handshakes"]}})
 
             #removing endorsement
             elif args["endorsement"] != "True" and data_base.solutions.find_one({"_id": ObjectId(args["solution_id"]), "endorsements": {"$in": [args["user_id"]]}}) != None:
@@ -499,7 +501,7 @@ class SolutionReviews(Resource):
                 #updating endorsement in users profile
                 data_base.users.update_one({"_id": ObjectId(args["user_id"])}, {"$pull": {"solutions_endorsed": args["solution_id"]}})
                 #decreasing solution points based on endorser points
-                data_base.solution.update_one({"_id": ObjectId(args["solution_id"])}, {"$inc": {"points": -user_info["points"]}})
+                data_base.solution.update_one({"_id": ObjectId(args["solution_id"])}, {"$inc": {"points": -user_info["handshakes"]}})
 
         return {
             "status": True,

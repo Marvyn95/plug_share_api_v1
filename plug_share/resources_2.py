@@ -105,7 +105,7 @@ class Plugs(Resource):
                 if len(item["handshakes"]) != 0:
                     reviewed_solutions.append(item)
            
-            reviewed_solutions.sort(key=lambda x: x["overall_star_rating"], reverse=True)
+            reviewed_solutions.sort(key=lambda x: x["points"], reverse=True)
             
             return {
                 "plugs": reviewed_solutions[:30]
