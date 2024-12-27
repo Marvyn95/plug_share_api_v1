@@ -74,8 +74,6 @@ class User(Resource):
             args = existing_user_parser.parse_args()
             user_01 = data_base.users.find_one({"_id": ObjectId(args["user_id"])})
             user_01["_id"] = str(user_01["_id"])
-            for i in user_01["needs"]:
-                i["_id"] = str(i["_id"]) 
             user_01.pop("password")
             return user_01
         except Exception as e:
