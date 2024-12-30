@@ -177,7 +177,7 @@ class CommunityNeeds(Resource):
                 need["poster's_name"] = user["user_name"]
                 need["poster's_email"] = user["email"]
                 need["poster's_stars"] = user["stars"]
-                need["poster's_points"] = user["handshakes"]
+                need["poster's_handshakes"] = user["handshakes"]
 
                 needs_01.append(need)
                 count += 1
