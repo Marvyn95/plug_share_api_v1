@@ -22,7 +22,7 @@ jwt = JWTManager(app)
 # mongoDB database connection
 conn_string = config.get("plugshare_mongodb_conn_string")
 cluster = pymongo.MongoClient(conn_string)
-data_base = cluster["plug_share_01"]
+data_base = cluster["plug_share"]
 
 from plug_share.resources import User, CommunityNeeds, Solutions, SolutionReviews, Endorsements
 from plug_share.resources_2 import GeneralGeneral_1, GeneralGeneral_2,GeneralGeneral_3, Plugs, Alternatives, NeedVotes
