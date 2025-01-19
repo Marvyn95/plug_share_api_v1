@@ -179,7 +179,7 @@ class CommunityNeeds(Resource):
                 need["poster's_stars"] = user["stars"]
                 need["poster's_handshakes"] = user["handshakes"]
 
-                need["need_solutions"] = data_base.solutions.find({"need_id": x["needs"]})
+                need["need_solutions"] = data_base.solutions.find({"need_id": x["need_id"]})
 
                 needs_01.append(need)
                 count += 1
