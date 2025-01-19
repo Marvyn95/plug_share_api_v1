@@ -159,7 +159,7 @@ class CommunityNeeds(Resource):
         #getting all need categories
         user_selected_needs = [item for item in list(data_base.needs.find()) if item["votes"] != []]
         #sorting based on largest selected category and getting top 30 categories
-        sorted_user_selected_needs = sorted(user_selected_needs, key = lambda x: len(x["votes"]))[:30]
+        sorted_user_selected_needs = sorted(user_selected_needs, key = lambda x: len(x["votes"]))
         needs_01 = []
         grouped_top_needs = []
         count = 0
@@ -178,6 +178,8 @@ class CommunityNeeds(Resource):
                 need["poster's_email"] = user["email"]
                 need["poster's_stars"] = user["stars"]
                 need["poster's_handshakes"] = user["handshakes"]
+
+                need["need_solutions"] = data_base.solutions.find({"need_id": x["needs"]})
 
                 needs_01.append(need)
                 count += 1
