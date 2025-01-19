@@ -179,7 +179,12 @@ class CommunityNeeds(Resource):
                 need["poster's_stars"] = user["stars"]
                 need["poster's_handshakes"] = user["handshakes"]
 
-                need["need_solutions"] = list(data_base.solutions.find({"need_id": x["need_id"]}))
+                need_solutions = data_base.solutions.find({"need_id": x["need_id"]})
+                sol = []
+                for slt in need_solutions:
+                    slt["_id"] = str(slt["_id"])
+                    sol.append(slt)
+                need["need_solutions"] = sol
 
                 needs_01.append(need)
                 count += 1
