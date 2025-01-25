@@ -158,7 +158,7 @@ class CommunityNeeds(Resource):
     def get(self):
         #getting all need categories
         user_selected_needs = [item for item in list(data_base.needs.find()) if item["votes"] != []]
-        #sorting based on largest selected category and getting top 30 categories
+        #sorting based on largest selected category and getting top 30/50/100/any categories
         sorted_user_selected_needs = sorted(user_selected_needs, key = lambda x: len(x["votes"]))
         needs_01 = []
         grouped_top_needs = []
@@ -179,12 +179,18 @@ class CommunityNeeds(Resource):
                 need["poster's_stars"] = user["stars"]
                 need["poster's_handshakes"] = user["handshakes"]
 
-                need_solutions = data_base.solutions.find({"need_id": x["need_id"]})
-                sol = []
-                for slt in need_solutions:
-                    slt["_id"] = str(slt["_id"])
-                    sol.append(slt)
-                need["need_solutions"] = sol
+                #adding need solutions to the specific needs 
+                need_solutions = []
+                #going through solutions submitted for all needs in this need_sub_category
+                for k in item["solutions_submitted"]:
+                    # finding if theres solution for ths specific need
+                    if k["need_id"] == x["need_id"]:
+                        # getting existing solutions for the need
+                        sol = data_base.solutions.find_one({"_id": ObjectId(k["solution_id"])})
+                        if sol is not None:
+                            sol["_id"] = str(sol["_id"])
+                            need_solutions.append(sol)
+                need["need_solutions"] = need_solutions
 
                 needs_01.append(need)
                 count += 1
