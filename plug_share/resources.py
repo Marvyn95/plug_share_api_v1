@@ -267,6 +267,7 @@ solution_submit_parser.add_argument("phone_number", location="form", type=str)
 solution_submit_parser.add_argument("email", location="form", type=str)
 solution_submit_parser.add_argument("location", location="form", type=str)
 solution_submit_parser.add_argument("details", location="form", type=str)
+solution_submit_parser.add_argument("link", location="form", type=str)
 
 #parser for getting solution info
 solution_info_parser = reqparse.RequestParser()
@@ -282,7 +283,7 @@ edit_solution_parser.add_argument("phone_number", location="form", type=str)
 edit_solution_parser.add_argument("email", location="form", type=str)
 edit_solution_parser.add_argument("location", location="form", type=str)
 edit_solution_parser.add_argument("details", location="form", type=str)
-
+edit_solution_parser.add_argument("link", location="form", type=str)
 
 #delete solution parser
 delete_solution_parser = reqparse.RequestParser()
@@ -310,6 +311,7 @@ class Solutions(Resource):
                     "email": args["email"],
                     "location": args["location"],
                     "details": args["details"],
+                    "link": args["link"],
                     "date_added": datetime.date.today().strftime("%A, %d/%b/%Y"),
                     "time_added": datetime.datetime.now().strftime("%H:%M hrs"),
                     "flags": [],
@@ -386,7 +388,8 @@ class Solutions(Resource):
                                                                                             "phone_number": args["phone_number"],
                                                                                             "email": args["email"],
                                                                                             "location": args["location"],
-                                                                                            "details": args["details"]}})
+                                                                                            "details": args["details"],
+                                                                                            "link": args["link"]}})
             return {
                 "status": True,
                 "message": "Solution Updated Successfully :)"
