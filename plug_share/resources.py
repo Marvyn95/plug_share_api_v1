@@ -356,7 +356,7 @@ class Solutions(Resource):
             "poster_name": poster_info["user_name"],
             "poster_email": poster_info["email"],
             "poster_stars": poster_info["stars"],
-            "poster_points": poster_info["points"]
+            "poster_handshakes": poster_info["handshakes"]
         }
 
         #getting need info and adding it to return object

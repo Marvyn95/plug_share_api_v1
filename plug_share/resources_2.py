@@ -82,7 +82,7 @@ class GeneralGeneral_3(Resource):
                     "name": sol_poster["user_name"],
                     "email": sol_poster["email"],
                     "stars": sol_poster["stars"],
-                    "points": sol_poster["points"]
+                    "handshakes": sol_poster["handshakes"]
                 }
                 sol["solution_poster_info"] = sol_poster_key_info
                 need_solutions.append(sol)
